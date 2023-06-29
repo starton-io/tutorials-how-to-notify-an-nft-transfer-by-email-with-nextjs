@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String     @id @default(auto()) @map("_id") @db.ObjectId
+  email             String     @unique
+  password          String
+  publicAddress     String     @unique
+  items             Item[]
+  sentTransfers     Transfer[] @relation("sentTransfers")
+  receivedTransfers Transfer[] @relation("receivedTransfers")
+  createdAt         DateTime   @default(now())
+}
+
+model Collection {
+  id              String @id @default(auto()) @map("_id") @db.ObjectId
+  contractAddress String @unique
+  name            String @unique
+  description     String
+  items           Item[]
+  nextTokenId     Int
+}
+
+model Item {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  collectionId String     @db.ObjectId
+  tokenId      String     @unique
+  ownerAddress String     @unique
+  owner        User?      @relation(fields: [ownerId], references: [id])
+  ownerId      String?    @db.ObjectId
+  transfers    Transfer[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Transfer {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  item       Item     @relation(fields: [itemId], references: [id])
+  itemId     String   @db.ObjectId
+  from       String
+  fromUser   User?    @relation("sentTransfers", fields: [fromUserId], references: [id])
+  fromUserId String?  @db.ObjectId
+  to         String
+  toUser     User?    @relation("receivedTransfers", fields: [toUserId], references: [id])
+  toUserId   String?  @db.ObjectId
+  txHash     String   @unique
+  createdAt  DateTime @default(now())
+}
+
+model RevokedToken {
+  id  String @id @default(auto()) @map("_id") @db.ObjectId
+  jti String @unique
+}
